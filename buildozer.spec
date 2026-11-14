@@ -495,3 +495,5 @@ warn_on_root = 1
 #        buildozer --profile demo android debug
 #
 #   Environment variable overrides have priority over profile overrides.
+p4a.branch = develop
+p4a.commit = d2ee8c5
