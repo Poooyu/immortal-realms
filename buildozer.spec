@@ -339,6 +339,8 @@ android.allow_backup = True
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
 #p4a.commit = HEAD
+p4a.branch = develop
+p4a.commit = d2ee8c5
 
 # (str) python-for-android git clone directory
 #p4a.source_dir =
@@ -495,5 +497,3 @@ warn_on_root = 1
 #        buildozer --profile demo android debug
 #
 #   Environment variable overrides have priority over profile overrides.
-p4a.branch = develop
-p4a.commit = d2ee8c5
