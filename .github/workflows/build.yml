@@ -1,26 +1,48 @@
-name: Build APK
+
+name: Build Immortal Realms APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master ]
+    paths:
+      - 'immortal_realms_files.tar.gz'
+      - '.github/workflows/android.yml'
 
 jobs:
   build:
-    runs-on: ubuntu-22.04   # ← Important change
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Download project
         uses: actions/checkout@v4
 
-      - name: Build APK with Buildozer
-        uses: digreatbrian/buildozer-action@v2
+      - name: Extract game
+        run: tar -xzf immortal_realms_files.tar.gz
+
+      - name: Prepare project
+        run: |
+          touch immortal_realms/__init__.py
+          touch immortal_realms/screens/__init__.py
+
+          sed -i 's/from screens.combat_screen import CombatScreen/from immortal_realms.screens.combat_screen import CombatScreen/' immortal_realms/main.py
+
+          sed -i 's|^source.dir = .|source.dir = ..|' immortal_realms/buildozer.spec
+
+          cat > main.py <<'PY'
+          from immortal_realms.main import ImmortalRealmsApp
+
+          ImmortalRealmsApp().run()
+          PY
+
+      - name: Build APK
+        id: buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
         with:
-          python-version: '3.11'
-          buildozer-cmd: buildozer -v android debug
+          workdir: immortal_realms
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Immortal-Realms-APK
-          path: bin/*.apk
+          path: ${{ steps.buildozer.outputs.filename }}
