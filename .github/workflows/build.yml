@@ -8,7 +8,7 @@ on:
       - '**.py'
       - 'screens/**'
       - 'buildozer.spec'
-      - '.github/workflows/android.yml'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
