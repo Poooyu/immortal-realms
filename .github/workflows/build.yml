@@ -10,39 +10,77 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Download project
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip \
+            autoconf libtool pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 \
+            cmake libffi-dev libssl-dev \
+            openjdk-17-jdk automake
+
+          python -m pip install --upgrade pip setuptools wheel
+          pip install buildozer Cython==0.29.34 virtualenv
+
       - name: Extract game
         run: tar -xzf immortal_realms_files.tar.gz
 
-      - name: Prepare project
+      - name: Prepare game
         run: |
           touch immortal_realms/__init__.py
           touch immortal_realms/screens/__init__.py
 
-          sed -i 's/from screens.combat_screen import CombatScreen/from immortal_realms.screens.combat_screen import CombatScreen/' immortal_realms/main.py
+          python - <<'PY'
+          from pathlib import Path
 
-          sed -i 's|^source.dir = .|source.dir = ..|' immortal_realms/buildozer.spec
+          p = Path("immortal_realms/main.py")
+          s = p.read_text()
+          s = s.replace(
+              "from screens.combat_screen import CombatScreen",
+              "from immortal_realms.screens.combat_screen import CombatScreen"
+          )
+          p.write_text(s)
+
+          spec = Path("immortal_realms/buildozer.spec")
+          s = spec.read_text()
+          s = s.replace("source.dir = .", "source.dir = ..")
+          s = s.replace(
+              "# android.accept_sdk_license = False",
+              "android.accept_sdk_license = True"
+          )
+          spec.write_text(s)
+          PY
 
           cat > main.py <<'PY'
           from immortal_realms.main import ImmortalRealmsApp
-
           ImmortalRealmsApp().run()
           PY
 
-      - name: Build APK
-        id: buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        with:
-          workdir: immortal_realms
-          buildozer_version: stable
+      - name: Build Android APK
+        working-directory: immortal_realms
+        run: |
+          yes | buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Immortal-Realms-APK
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: immortal_realms/bin/*.apk
+          if-no-files-found: error
